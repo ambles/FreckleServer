@@ -53,9 +53,9 @@ func Status(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 
-	if hostname, err := os.Hostname(); err != nil {
+	if hostname, err := os.Hostname(); err == nil {
 		fmt.Fprintln(w, "Success! I am", hostname, ". Server time:", time.Now())
 	} else {
-		fmt.Fprintln(w, err.Error())
+		fmt.Fprintln(w, err.Error)
 	}
 }

@@ -1,4 +1,4 @@
-Installing gland and git
+Installing golang and git
 
 `sudo apt-get install golang git`
 

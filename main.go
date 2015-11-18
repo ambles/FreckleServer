@@ -2,12 +2,17 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 )
 
+var CachedBeacons Beacons = select_all()
+
 func main() {
+
+	fmt.Println("Initializing")
 
 	router := NewRouter()
 

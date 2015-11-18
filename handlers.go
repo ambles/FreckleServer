@@ -1,21 +1,23 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
-	_ "github.com/lib/pq"
 	"log"
 	"net/http"
 	"os"
 	"time"
 )
 
+// request header: -H "Authorization: Basic d57be6b2402fe1248ca912bccd061653f743cf21b4c382f6b" -H "freckle-platform: android" -H "freckle-sdk-version: 1.1" -H "freckle-app-id: com.freckleiot.freckle" -H "freckle-idfa: tester-12345-12345" -H "freckle-user-lang: en" -H "Content-Type: application/json"
+
 func Index(w http.ResponseWriter, r *http.Request) {
+
 	r.ParseForm()
 	action := r.Form.Get("action")
 	fmt.Fprintln(w, "Welcome!", action)
+
 	switch action {
 	case "ping", "Ping":
 		fmt.Fprintln(w, "We've gone a ", action, " event")
@@ -23,10 +25,18 @@ func Index(w http.ResponseWriter, r *http.Request) {
 
 		beacons := Beacons{}
 
+		app_id := r.Header.Get("freckle-app-id")
+		lat := r.Form.Get("lat")
+		lng := r.Form.Get("lng")
+		fmt.Fprintln(w, "app-id: ", app_id,
+			"lat:", lat,
+			"lng:", lng)
+
 		//selectAll(&beacons)
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
 		if err := json.NewEncoder(w).Encode(beacons); err != nil {
+			log.Fatal(err)
 			panic(err)
 		}
 
@@ -38,80 +48,6 @@ func Index(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "We've gone a ", action, " event")
 	default:
 		fmt.Fprintln(w, "Unknown action")
-	}
-}
-
-func selectAll(beacons *Beacons) {
-	// TODO : user and dbname should be in configuration
-	db, err := sql.Open("postgres", "user=postgres dbname=freckle_proximity_db sslmode=disable")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// TODO : 'beacons' should be a variable, and do we need '*', be specific!
-	rows, err := db.Query("SELECT * FROM beacons")
-	if err != nil {
-		panic(err.Error())
-	}
-
-	if err = db.Close(); err != nil {
-		panic(err.Error())
-	}
-
-	var (
-		beaconid         string
-		date             time.Time
-		uuid             string
-		major            int
-		minor            int
-		nickname         []byte
-		current_campaign []byte
-		inredis          bool
-		active           bool
-		lat              float64
-		long             float64
-		location         []byte
-		tags             []byte
-		attributes       []byte
-		class            []byte
-		creation_date    time.Time
-		geom             []byte
-	)
-
-	defer rows.Close()
-	for rows.Next() {
-		err := rows.Scan(
-			&beaconid,         // 1
-			&date,             // 2
-			&uuid,             // 3
-			&major,            // 4
-			&minor,            // 5
-			&nickname,         // 6
-			&current_campaign, // 7
-			&inredis,          // 8
-			&active,           // 9
-			&lat,              // 10
-			&long,             // 11
-			&location,         // 12
-			&tags,             // 13
-			&attributes,       // 14
-			&class,            // 15
-			&creation_date,    // 16
-			&geom,             // 17
-		)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// TODO : IO here slows things down
-		log.Println(beaconid)
-
-		// TODO : the following append is VERY memory inefficient
-		*beacons = append(*beacons, Beacon{ID: beaconid, CreationDate: creation_date})
-	}
-	err = rows.Err()
-	if err != nil {
-		log.Fatal(err)
 	}
 }
 
@@ -134,7 +70,9 @@ func TodoShow(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Todo show:", todoId)
 }
 
+//
 // /Status returns HTTP 200 to signal "I am alive and well!"
+//
 func Status(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
@@ -144,4 +82,54 @@ func Status(w http.ResponseWriter, r *http.Request) {
 	} else {
 		fmt.Fprintln(w, err.Error)
 	}
+}
+
+//
+// List
+//
+func List(w http.ResponseWriter, r *http.Request) {
+
+	r.ParseForm()
+	option := r.Form.Get("option")
+	switch option {
+
+	// list all beacons straight from DB
+	case "from-db":
+		beacons := select_all()
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(w).Encode(beacons); err != nil {
+			panic(err)
+		}
+
+	// list all beacons from local memory
+	case "echo":
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+
+	// list all beacons from local memory
+	case "from-cache":
+		fallthrough
+
+	// list all beacons from local memory
+	case "text":
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, "%v", CachedBeacons)
+
+	// list all beacons from local memory
+	default:
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(w).Encode(CachedBeacons); err != nil {
+			panic(err)
+		}
+
+	}
+
+	// Parse lat & log without knowing whether the exist or not
+	latStr := r.Form.Get("lat")
+	lngStr := r.Form.Get("lng")
+
+	fmt.Fprintln(w, latStr, lngStr)
 }

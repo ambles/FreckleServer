@@ -7,6 +7,70 @@ import (
 	"time"
 )
 
+//
+//
+//
+func selectProximity_P_Beacons(lat float32, lng float32) Beacons {
+
+	var beacons Beacons
+
+	db, err := sql.Open("postgres", "user=postgres dbname=freckle_proximity_db sslmode=disable")
+	if err != nil {
+		if db != nil {
+			defer db.Close() // ignoring err as we are in error state already
+		}
+		log.Fatal(err)
+	}
+
+	// TODO : 'beacons' should be a variable, and do we need '*', be specific!
+	//rows, err := db.Query("SELECT b.uuid, b.major, b.minor, b.beaconid AS id, ROUND((b.geom <-> ST_MakePoint(?, -79.3800603))::numeric(10, 4), 0)::float AS distance_in_meters FROM beacons b WHERE b.lat IS NOT NULL AND b.lng IS NOT NULL AND b.uuid NOT LIKE 'unit%' AND b.geom <-> ST_MakePoint(43.6536106, -79.3800603) < 10000 ORDER BY distance_in_meters ASC LIMIT 20;", lat)
+	rows, err := db.Query("SELECT b.uuid, b.major, b.minor, b.beaconid AS id, ROUND((b.geom <-> ST_MakePoint(43.6536106, -79.3800603))::numeric(10, 4), 0)::float AS distance_in_meters FROM beacons b WHERE b.lat IS NOT NULL AND b.lng IS NOT NULL AND b.uuid NOT LIKE 'unit%' AND b.geom <-> ST_MakePoint(43.6536106, -79.3800603) < 10000 ORDER BY distance_in_meters ASC LIMIT 20;")
+	if err != nil {
+		if db != nil {
+			defer db.Close() // ignoring err as we are in error state already
+		}
+		panic(err.Error())
+	}
+
+	if err = db.Close(); err != nil {
+		panic(err.Error())
+	}
+
+	var (
+		beaconid string
+		uuid     string
+		major    int
+		minor    int
+		distance int
+	)
+	defer rows.Close()
+
+	for rows.Next() {
+		err := rows.Scan(
+			&uuid,     // 2
+			&major,    // 3
+			&minor,    // 4
+			&beaconid, // 1
+			&distance, // 5
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// TODO : the following append is VERY memory inefficient
+		beacons = append(beacons, Beacon{ID: beaconid})
+	}
+
+	if err = rows.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	return beacons
+}
+
+//
+//
+//
 func select_all() Beacons {
 
 	var beacons Beacons
@@ -14,12 +78,18 @@ func select_all() Beacons {
 	// TODO : user and dbname should be in configuration
 	db, err := sql.Open("postgres", "user=postgres dbname=freckle_proximity_db sslmode=disable")
 	if err != nil {
+		if db != nil {
+			defer db.Close() // ignoring err as we are in error state already
+		}
 		log.Fatal(err)
 	}
 
 	// TODO : 'beacons' should be a variable, and do we need '*', be specific!
 	rows, err := db.Query("SELECT * FROM beacons")
 	if err != nil {
+		if db != nil {
+			defer db.Close() // ignoring err as we are in error state already
+		}
 		panic(err.Error())
 	}
 
@@ -73,10 +143,10 @@ func select_all() Beacons {
 		}
 
 		// TODO : the following append is VERY memory inefficient
-		beacons = append(beacons, Beacon{ID: beaconid, CreationDate: creation_date})
+		beacons = append(beacons, Beacon{ID: beaconid})
 	}
-	err = rows.Err()
-	if err != nil {
+
+	if err = rows.Err(); err != nil {
 		log.Fatal(err)
 	}
 

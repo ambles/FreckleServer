@@ -93,6 +93,22 @@ func List(w http.ResponseWriter, r *http.Request) {
 	option := r.Form.Get("option")
 	switch option {
 
+	case "latlng":
+
+		fmt.Println("------------------------------------------")
+
+		// Parse lat & log without knowing whether the exist or not
+		latStr := r.Form.Get("lat")
+		lngStr := r.Form.Get("lng")
+
+		fmt.Fprintln(w, latStr, lngStr)
+		beacons := selectProximity_P_Beacons(43.6536106, -79.3800603)
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(w).Encode(beacons); err != nil {
+			panic(err)
+		}
+
 	// list all beacons straight from DB
 	case "from-db":
 		beacons := select_all()
@@ -108,14 +124,14 @@ func List(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 
 	// list all beacons from local memory
-	case "from-cache":
-		fallthrough
-
-	// list all beacons from local memory
 	case "text":
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "%v", CachedBeacons)
+
+	// list all beacons from local memory
+	case "from-cache":
+		fallthrough
 
 	// list all beacons from local memory
 	default:
@@ -127,9 +143,4 @@ func List(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	// Parse lat & log without knowing whether the exist or not
-	latStr := r.Form.Get("lat")
-	lngStr := r.Form.Get("lng")
-
-	fmt.Fprintln(w, latStr, lngStr)
 }

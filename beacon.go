@@ -1,11 +1,11 @@
 package main
 
-import "time"
+//import "time"
 
 type Beacon struct {
 	ID string `json:"id"`
 	//Completed bool      `json:"completed"`
-	CreationDate time.Time `json:"due"`
+	//CreationDate time.Time `json:"due"`
 }
 
 type Beacons []Beacon

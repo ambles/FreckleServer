@@ -23,8 +23,12 @@ func selectProximity_P_Beacons(lat float32, lng float32) Beacons {
 	}
 
 	// TODO : 'beacons' should be a variable, and do we need '*', be specific!
-	//rows, err := db.Query("SELECT b.uuid, b.major, b.minor, b.beaconid AS id, ROUND((b.geom <-> ST_MakePoint(?, -79.3800603))::numeric(10, 4), 0)::float AS distance_in_meters FROM beacons b WHERE b.lat IS NOT NULL AND b.lng IS NOT NULL AND b.uuid NOT LIKE 'unit%' AND b.geom <-> ST_MakePoint(43.6536106, -79.3800603) < 10000 ORDER BY distance_in_meters ASC LIMIT 20;", lat)
-	rows, err := db.Query("SELECT b.uuid, b.major, b.minor, b.beaconid AS id, ROUND((b.geom <-> ST_MakePoint(43.6536106, -79.3800603))::numeric(10, 4), 0)::float AS distance_in_meters FROM beacons b WHERE b.lat IS NOT NULL AND b.lng IS NOT NULL AND b.uuid NOT LIKE 'unit%' AND b.geom <-> ST_MakePoint(43.6536106, -79.3800603) < 10000 ORDER BY distance_in_meters ASC LIMIT 20;")
+	var (
+		distanceLimit = 10000
+		resultLimit   = 20
+	)
+	// TODO : this query NEEDS to be optimized
+	rows, err := db.Query("SELECT beaconid, uuid, major, minor, ROUND((geom <-> ST_MakePoint($1, $2))::numeric(10, 4), 0)::float AS distance_in_meters FROM beacons WHERE lat IS NOT NULL AND lng IS NOT NULL AND uuid NOT LIKE 'unit%' AND geom <-> ST_MakePoint($3, $4) < $5 ORDER BY distance_in_meters ASC LIMIT $6;", lat, lng, lat, lng, distanceLimit, resultLimit)
 	if err != nil {
 		if db != nil {
 			defer db.Close() // ignoring err as we are in error state already
@@ -47,10 +51,10 @@ func selectProximity_P_Beacons(lat float32, lng float32) Beacons {
 
 	for rows.Next() {
 		err := rows.Scan(
+			&beaconid, // 1
 			&uuid,     // 2
 			&major,    // 3
 			&minor,    // 4
-			&beaconid, // 1
 			&distance, // 5
 		)
 		if err != nil {

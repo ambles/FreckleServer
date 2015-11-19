@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -95,14 +96,16 @@ func List(w http.ResponseWriter, r *http.Request) {
 
 	case "latlng":
 
-		fmt.Println("------------------------------------------")
-
 		// Parse lat & log without knowing whether the exist or not
-		latStr := r.Form.Get("lat")
-		lngStr := r.Form.Get("lng")
+		// TODO : what if lat and lng are't there and can't parse for whatever reason -- ERROR HANDLING
+		lat, err := strconv.ParseFloat(r.Form.Get("lat"), 32)
+		lng, err := strconv.ParseFloat(r.Form.Get("lng"), 32)
+		if err != nil {
+			panic(err)
+		}
 
-		fmt.Fprintln(w, latStr, lngStr)
-		beacons := selectProximity_P_Beacons(43.6536106, -79.3800603)
+		beacons := selectProximity_P_Beacons(float32(lat), float32(lng))
+
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
 		if err := json.NewEncoder(w).Encode(beacons); err != nil {

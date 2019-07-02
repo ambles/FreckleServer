@@ -1,10 +1,12 @@
-Installing golang and git
+# Basic Web Server with GO
+
+## Installing golang and git
 
 `sudo apt-get install golang git`
 
  
 
-Setting up the directories
+## Setting up the directories
 
 `cd ~`
 
@@ -20,7 +22,7 @@ Setting up the directories
 
  
 
-Getting Ambles’s sample code
+## Getting Ambles’s sample code
 
 `git init`
 
@@ -28,7 +30,7 @@ Getting Ambles’s sample code
 
  
 
-Building the server
+## Building the server
 
 `export GOPATH=$HOME/work`
 
@@ -46,7 +48,7 @@ Building the server
 
  
 
-Running the server
+## Running the server
 
 `./FreckleServer`
 
